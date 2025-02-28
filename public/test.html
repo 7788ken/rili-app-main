@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日历分享API测试</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        .response-box {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">日历分享API测试工具</h1>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">创建/分享日历</div>
+                    <div class="card-body">
+                        <form id="createCalendarForm">
+                            <div class="form-group">
+                                <label for="calendarName">日历名称</label>
+                                <input type="text" class="form-control" id="calendarName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="calendarColor">颜色 (十六进制，不含#)</label>
+                                <input type="text" class="form-control" id="calendarColor" value="3788d8">
+                            </div>
+                            <div class="form-group">
+                                <label for="schedules">日程 (JSON格式)</label>
+                                <textarea class="form-control" id="schedules" rows="5">[
+    {
+        "title": "测试日程1",
+        "description": "这是一个测试日程",
+        "startTime": 1635765600000,
+        "endTime": 1635769200000,
+        "isAllDay": 0,
+        "location": "测试地点"
+    }
+]</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">创建并分享</button>
+                        </form>
+                        <div class="response-box" id="createCalendarResponse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">获取共享日历信息</div>
+                    <div class="card-body">
+                        <form id="getCalendarForm">
+                            <div class="form-group">
+                                <label for="shareCode">分享码</label>
+                                <input type="text" class="form-control" id="shareCode" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">获取日历</button>
+                        </form>
+                        <div class="response-box" id="getCalendarResponse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">获取日程列表</div>
+                    <div class="card-body">
+                        <form id="getSchedulesForm">
+                            <div class="form-group">
+                                <label for="scheduleShareCode">分享码</label>
+                                <input type="text" class="form-control" id="scheduleShareCode" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">获取日程</button>
+                        </form>
+                        <div class="response-box" id="getSchedulesResponse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">添加日程</div>
+                    <div class="card-body">
+                        <form id="addScheduleForm">
+                            <div class="form-group">
+                                <label for="addScheduleShareCode">分享码</label>
+                                <input type="text" class="form-control" id="addScheduleShareCode" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="scheduleData">日程数据 (JSON格式)</label>
+                                <textarea class="form-control" id="scheduleData" rows="5">{
+    "title": "新日程",
+    "description": "这是一个新添加的日程",
+    "startTime": 1635765600000,
+    "endTime": 1635769200000,
+    "isAllDay": 0,
+    "location": "新地点"
+}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">添加日程</button>
+                        </form>
+                        <div class="response-box" id="addScheduleResponse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 创建/分享日历
+            document.getElementById('createCalendarForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const responseBox = document.getElementById('createCalendarResponse');
+                responseBox.innerText = '请求中...';
+
+                try {
+                    const calendarName = document.getElementById('calendarName').value;
+                    const calendarColor = document.getElementById('calendarColor').value;
+                    const schedulesText = document.getElementById('schedules').value;
+                    let schedules = [];
+                    
+                    try {
+                        schedules = JSON.parse(schedulesText);
+                    } catch (err) {
+                        responseBox.innerText = '日程JSON格式错误: ' + err.message;
+                        return;
+                    }
+
+                    const response = await fetch('/api/calendars/share', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: calendarName,
+                            color: calendarColor,
+                            schedules: schedules
+                        })
+                    });
+
+                    const data = await response.json();
+                    responseBox.innerText = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    responseBox.innerText = '请求失败: ' + error.message;
+                }
+            });
+
+            // 获取共享日历信息
+            document.getElementById('getCalendarForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const responseBox = document.getElementById('getCalendarResponse');
+                responseBox.innerText = '请求中...';
+
+                try {
+                    const shareCode = document.getElementById('shareCode').value;
+
+                    const response = await fetch(`/api/calendars/${shareCode}`, {
+                        method: 'GET'
+                    });
+
+                    const data = await response.json();
+                    responseBox.innerText = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    responseBox.innerText = '请求失败: ' + error.message;
+                }
+            });
+
+            // 获取日程列表
+            document.getElementById('getSchedulesForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const responseBox = document.getElementById('getSchedulesResponse');
+                responseBox.innerText = '请求中...';
+
+                try {
+                    const shareCode = document.getElementById('scheduleShareCode').value;
+
+                    const response = await fetch(`/api/calendars/${shareCode}/schedules`, {
+                        method: 'GET'
+                    });
+
+                    const data = await response.json();
+                    responseBox.innerText = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    responseBox.innerText = '请求失败: ' + error.message;
+                }
+            });
+
+            // 添加日程
+            document.getElementById('addScheduleForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const responseBox = document.getElementById('addScheduleResponse');
+                responseBox.innerText = '请求中...';
+
+                try {
+                    const shareCode = document.getElementById('addScheduleShareCode').value;
+                    const scheduleDataText = document.getElementById('scheduleData').value;
+                    let scheduleData = {};
+                    
+                    try {
+                        scheduleData = JSON.parse(scheduleDataText);
+                    } catch (err) {
+                        responseBox.innerText = '日程JSON格式错误: ' + err.message;
+                        return;
+                    }
+
+                    const response = await fetch(`/api/calendars/${shareCode}/schedules`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(scheduleData)
+                    });
+
+                    const data = await response.json();
+                    responseBox.innerText = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    responseBox.innerText = '请求失败: ' + error.message;
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

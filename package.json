@@ -1,0 +1,55 @@
+{
+  "name": "jtrl_serve",
+  "version": "1.0.0",
+  "description": "基于分享码的轻量级日历共享服务",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "lint": "eslint --fix src/",
+    "format": "prettier --write \"src/**/*.js\"",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "init-db": "node scripts/initDb.js",
+    "test-api": "node scripts/testApi.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/7788ken/rili-app-main.git"
+  },
+  "keywords": [
+    "calendar",
+    "share",
+    "schedule",
+    "nodejs",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/7788ken/rili-app-main/issues"
+  },
+  "homepage": "https://github.com/7788ken/rili-app-main#readme",
+  "devDependencies": {
+    "eslint": "^9.21.0",
+    "eslint-config-prettier": "^10.0.2",
+    "eslint-plugin-prettier": "^5.2.3",
+    "nodemon": "^3.1.9",
+    "prettier": "^3.5.2"
+  },
+  "dependencies": {
+    "axios": "^1.8.1",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-async-handler": "^1.2.0",
+    "express-rate-limit": "^7.5.0",
+    "express-validator": "^7.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.11.0",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.12.0",
+    "sequelize": "^6.37.5",
+    "socket.io": "^4.8.1"
+  }
+}
