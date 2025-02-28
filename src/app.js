@@ -94,6 +94,11 @@ app.use('/api/', apiLimiter);
 app.use('/api/share', shareLimiter);
 app.use('/api/calendars', shareLimiter);
 
+// 处理favicon.ico请求
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end(); // 返回"无内容"状态码
+});
+
 // 首页路由
 app.get('/', (req, res) => {
   res.json({ 
@@ -192,7 +197,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // 启动服务器
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // 连接数据库并启动服务器
 const startServer = async () => {
