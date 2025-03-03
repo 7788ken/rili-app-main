@@ -309,60 +309,40 @@ const shareCalendar = asyncHandler(async (req, res) => {
   });
 });
 
-// 统一的日期格式转换函数
-const formatDate = (dateStr) => {
-  if (!dateStr) return null;
-  
-  try {
-    const date = new Date(dateStr);
-    // 转换为东八区时间
-    date.setHours(date.getHours() + 8);
-    // 格式化为YYYY-MM-DD HH:MM:SS
-    return date.toISOString().replace('T', ' ').substring(0, 19);
-  } catch (error) {
-    console.error('日期格式化失败:', error, dateStr);
-    return null; // 出错时返回null
-  }
-};
-
 /**
  * @desc    获取共享日历信息
  * @route   GET /api/calendars/:shareCode
  * @access  公开
  */
 const getCalendarByShareCode = asyncHandler(async (req, res) => {
-  try {
-    const { shareCode } = req.params;
-    
-    const calendar = await Calendar.findOne({
-      where: { share_code: shareCode },
-      include: [{
-        model: Device,
-        as: 'device'
-      }]
-    });
-    
-    if (!calendar) {
-      return res.status(404).json({ success: false, message: '日历不存在或已过期' });
-    }
+  const { shareCode } = req.params;
 
-    // 处理日期字段
-    const createdAt = formatDate(calendar.created_at);
-    const updatedAt = formatDate(calendar.updated_at);
-    
-    const deviceName = calendar.device ? calendar.device.device_name : 'Unknown Device';
-    
-    return res.json({
-      name: calendar.title || '',
-      color: calendar.color || 'ff2196f3',
-      ownerId: calendar.device_id || '',
-      createdAt,
-      updatedAt
-    });
-  } catch (error) {
-    console.error('获取日历失败:', error);
-    return res.status(500).json({ success: false, message: error.message, stack: error.stack });
+  const calendar = await Calendar.findOne({
+    where: { shareCode },
+    include: [{
+      model: Device,
+      as: 'device',
+      attributes: ['deviceId', 'deviceName', 'platform']
+    }]
+  });
+
+  if (!calendar) {
+    res.status(404);
+    throw new Error('日历未找到，请检查分享码是否正确');
   }
+
+  // 检查分享码是否过期
+  if (!calendar.isShareCodeValid()) {
+    res.status(410);
+    throw new Error('分享码已过期');
+  }
+
+  res.json({
+    name: calendar.title,
+    color: calendar.color,
+    ownerId: calendar.deviceId,
+    createdAt: calendar.createdAt
+  });
 });
 
 /**
@@ -430,8 +410,8 @@ const getSchedulesByShareCode = asyncHandler(async (req, res) => {
       id: schedule.localId,
       title: schedule.title,
       description: schedule.description,
-      startTime: new Date(schedule.startTime).getTime(),
-      endTime: new Date(schedule.endTime).getTime(),
+      startTime: schedule.startTime.getTime(),
+      endTime: schedule.endTime.getTime(),
       isAllDay: schedule.isAllDay ? 1 : 0,
       location: schedule.location || ''
     }))
@@ -482,8 +462,8 @@ const addScheduleByShareCode = asyncHandler(async (req, res) => {
     id: schedule.localId,
     title: schedule.title,
     description: schedule.description,
-    startTime: new Date(schedule.startTime).getTime(),
-    endTime: new Date(schedule.endTime).getTime(),
+    startTime: schedule.startTime.getTime(),
+    endTime: schedule.endTime.getTime(),
     isAllDay: schedule.isAllDay ? 1 : 0,
     location: schedule.location || ''
   });

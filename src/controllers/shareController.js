@@ -104,6 +104,11 @@ const shareCalendar = async (req, res) => {
           lastSynced: new Date()
         });
       }
+      
+      // 当添加了日程后，更新日历的时间戳
+      dbCalendar.lastSync = new Date();
+      // 由于 timestamps: true，这将自动更新 updated_at 字段
+      await dbCalendar.save();
     }
 
     return successResponse(
@@ -131,76 +136,127 @@ const shareCalendar = async (req, res) => {
 };
 
 /**
- * @desc    通过分享码获取日历和日程
+ * @desc    获取分享的日历和关联日程
  * @route   GET /api/share/:shareCode
  * @access  公开
  */
-const getCalendarByShareCode = async (req, res) => {
+const getSharedCalendar = async (req, res) => {
   try {
     const { shareCode } = req.params;
-
-    const calendar = await Calendar.findOne({ 
-      where: { shareCode },
-      include: [{ 
-        model: Device, 
-        as: 'device', 
-        attributes: ['deviceId', 'deviceName', 'platform'] 
+    
+    const calendar = await Calendar.findOne({
+      where: { share_code: shareCode },
+      include: [{
+        model: Device,
+        as: 'device',
+        attributes: ['device_id', 'device_name', 'platform']
       }]
     });
-
+    
     if (!calendar) {
-      return errorResponse(res, 404, '未找到该分享日历，请检查分享码是否正确');
+      return res.status(404).json({
+        success: false,
+        message: '分享的日历不存在'
+      });
     }
-
-    if (!calendar.isShareCodeValid()) {
-      return errorResponse(res, 410, '分享码已过期');
+    
+    // 验证分享码是否有效
+    const now = new Date();
+    const shareExpire = new Date(calendar.share_expire);
+    
+    if (shareExpire < now) {
+      return res.status(410).json({
+        success: false,
+        message: '分享链接已过期'
+      });
     }
-
-    // 获取该日历下的所有日程
+    
+    // 查询所有未删除的日程
     const schedules = await Schedule.findAll({
-      where: { 
-        calendarId: calendar.id,
-        isDeleted: false
+      where: {
+        calendar_id: calendar.id,
+        is_deleted: false
       },
-      order: [['startTime', 'ASC']]
+      order: [['start_time', 'ASC']]
     });
-
-    return successResponse(
-      res,
-      200,
-      '获取分享日历成功',
-      {
-        calendar: {
-          id: calendar.id,
-          title: calendar.title,
-          description: calendar.description,
-          color: calendar.color,
-          isShared: calendar.isShared,
-          shareCode: calendar.shareCode,
-          shareExpire: calendar.shareExpire,
-          requiresPassword: !!calendar.editPassword,
-          createdAt: calendar.createdAt,
-          deviceName: calendar.device ? calendar.device.deviceName : '未知设备'
-        },
-        schedules: schedules.map(schedule => ({
-          id: schedule.id,
-          localId: schedule.localId,
-          title: schedule.title,
-          description: schedule.description,
-          location: schedule.location,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          isAllDay: schedule.isAllDay,
-          color: schedule.color,
-          reminder: schedule.reminder,
-          isCompleted: Boolean(schedule.isCompleted)
-        })),
-        count: schedules.length
+    
+    // 处理日期，转换为东八区时间并以YYYY-MM-DD HH:MM:SS格式返回
+    const formatDates = (object) => {
+      if (!object) return object;
+      
+      const result = { ...object };
+      
+      // 统一的日期格式转换函数
+      const formatDate = (dateStr) => {
+        try {
+          const date = new Date(dateStr);
+          // 转换为东八区时间
+          date.setHours(date.getHours() + 8);
+          // 格式化为YYYY-MM-DD HH:MM:SS
+          return date.toISOString().replace('T', ' ').substring(0, 19);
+        } catch (error) {
+          console.error('日期格式化失败:', error, dateStr);
+          return dateStr; // 出错时返回原始值
+        }
+      };
+      
+      if (result.created_at) {
+        result.createdAt = formatDate(result.created_at);
+        delete result.created_at;
       }
-    );
+      
+      if (result.updated_at) {
+        result.updatedAt = formatDate(result.updated_at);
+        delete result.updated_at;
+      }
+      
+      // 处理其他日期字段
+      if (result.share_expire) {
+        result.shareExpire = formatDate(result.share_expire);
+      }
+      
+      if (result.last_sync) {
+        result.lastSync = formatDate(result.last_sync);
+      }
+      
+      return result;
+    };
+    
+    // 格式化日历数据
+    const calendarData = formatDates(calendar.get({ plain: true }));
+    
+    // 格式化日程数据
+    const formattedSchedules = schedules.map(schedule => {
+      return formatDates(schedule.get({ plain: true }));
+    });
+    
+    return res.json({
+      success: true,
+      message: '获取分享日历成功',
+      data: {
+        calendar: {
+          id: calendarData.id,
+          title: calendarData.title,
+          description: calendarData.description || '',
+          color: calendarData.color || '#3498db',
+          isShared: calendarData.is_shared,
+          shareCode: calendarData.share_code,
+          shareExpire: calendarData.share_expire,
+          requiresPassword: calendarData.edit_password ? true : false,
+          deviceName: calendar.device ? calendar.device.device_name : 'Unknown Device',
+          createdAt: calendarData.createdAt,
+          updatedAt: calendarData.updatedAt
+        },
+        schedules: formattedSchedules,
+        count: formattedSchedules.length
+      }
+    });
   } catch (error) {
-    console.error('获取分享日历出错:', error);
-    return errorResponse(res, 500, '获取分享日历失败', error.message);
+    console.error('获取分享日历失败:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 
@@ -349,6 +405,9 @@ const syncSharedCalendar = async (req, res) => {
       skipped: 0
     };
 
+    // 标记是否有任何日程变化
+    let hasScheduleChanges = false;
+
     for (const schedule of schedules) {
       if (!schedule.localId) {
         result.skipped++;
@@ -371,6 +430,7 @@ const syncSharedCalendar = async (req, res) => {
           existingSchedule.lastSynced = new Date();
           await existingSchedule.save();
           result.deleted++;
+          hasScheduleChanges = true;
         }
       } else if (existingSchedule) {
         // 确保 isCompleted 是布尔值
@@ -390,6 +450,7 @@ const syncSharedCalendar = async (req, res) => {
         existingSchedule.lastSynced = new Date();
         await existingSchedule.save();
         result.updated++;
+        hasScheduleChanges = true;
       } else {
         // 确保 isCompleted 是布尔值
         const isCompleted = schedule.isCompleted === true || schedule.isCompleted === 'true' || schedule.isCompleted === 1;
@@ -412,7 +473,15 @@ const syncSharedCalendar = async (req, res) => {
           lastSynced: new Date()
         });
         result.added++;
+        hasScheduleChanges = true;
       }
+    }
+
+    // 如果有任何日程变化，更新日历的时间戳
+    if (hasScheduleChanges) {
+      sharedCalendar.lastSync = new Date();
+      // 由于 timestamps: true，这将自动更新 updated_at 字段
+      await sharedCalendar.save();
     }
 
     return successResponse(
@@ -436,7 +505,7 @@ const syncSharedCalendar = async (req, res) => {
 
 module.exports = {
   shareCalendar,
-  getCalendarByShareCode,
+  getSharedCalendar,
   importSharedCalendar,
   syncSharedCalendar
 }; 

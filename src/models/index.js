@@ -29,6 +29,63 @@ const syncModels = async () => {
   }
 };
 
+// 添加一个函数来处理日期转换
+const convertDate = (date) => {
+  if (!date) return null;
+  if (date instanceof Date) return date;
+  try {
+    return new Date(date);
+  } catch (e) {
+    console.error('日期转换错误:', e);
+    return null;
+  }
+};
+
+// 简化修复，移除对hooks的修改
+// const addDateHooks = (models) => {
+//   Object.values(models).forEach(model => {
+//     console.log(`为模型 ${model.name} 添加日期转换钩子`);
+//     
+//     // 添加afterFind钩子
+//     const originalAfterFind = model.options.hooks.afterFind || function(result) { return result; };
+//     model.options.hooks.afterFind = function(result) {
+//       const processed = originalAfterFind.call(this, result);
+//       
+//       // 处理单个结果
+//       const processInstance = (instance) => {
+//         if (instance && instance.dataValues) {
+//           if (instance.dataValues.created_at) {
+//             instance.dataValues.createdAt = convertDate(instance.dataValues.created_at);
+//             console.log(`转换 ${model.name} created_at:`, instance.dataValues.created_at, '为:', instance.dataValues.createdAt);
+//           }
+//           if (instance.dataValues.updated_at) {
+//             instance.dataValues.updatedAt = convertDate(instance.dataValues.updated_at);
+//             console.log(`转换 ${model.name} updated_at:`, instance.dataValues.updated_at, '为:', instance.dataValues.updatedAt);
+//           }
+//         }
+//         return instance;
+//       };
+//       
+//       // 处理结果集合
+//       if (Array.isArray(processed)) {
+//         processed.forEach(processInstance);
+//       } else {
+//         processInstance(processed);
+//       }
+//       
+//       return processed;
+//     };
+//   });
+// };
+
+// 不再使用钩子
+// const db = {
+//   Calendar,
+//   Schedule,
+//   Device
+// };
+// addDateHooks(db);
+
 module.exports = {
   sequelize,
   syncModels,

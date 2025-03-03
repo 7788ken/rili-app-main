@@ -31,6 +31,18 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'
+  },
+  // 添加时区配置，使用东八区(UTC+8)，中国标准时间
+  timezone: '+08:00',
+  // 添加方言特定选项，使MySQL在写入时使用指定时区
+  dialectOptions: {
+    dateStrings: false,
+    typeCast: function (field, next) {
+      if (field.type === 'DATETIME' || field.type === 'TIMESTAMP') {
+        return field.string();
+      }
+      return next();
+    }
   }
 });
 
@@ -42,8 +54,9 @@ const connectDB = async () => {
     
     // 在开发环境下同步模型（不要在生产环境使用force: true）
     if (process.env.NODE_ENV === 'development') {
+      // 暂时禁用自动同步以避免Too many keys错误
       // await sequelize.sync({ alter: true });
-      console.log('数据库模型已同步');
+      console.log('数据库模型同步已禁用，如需手动同步请使用SQL或修改此代码');
     }
     
     return true;
