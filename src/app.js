@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit');
 const { connectDB } = require('./config/db');
 const { syncModels } = require('./models');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
+const { verifySignature } = require('./middlewares/securityMiddleware');
 
 // 加载环境变量
 dotenv.config();
@@ -53,6 +54,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
+
+// 添加签名验证中间件
+app.use(verifySignature);
 
 // 请求日志中间件
 app.use((req, res, next) => {

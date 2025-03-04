@@ -30,6 +30,7 @@
   },
   "homepage": "https://github.com/7788ken/rili-app-main#readme",
   "devDependencies": {
+    "axios": "^1.8.1",
     "eslint": "^9.21.0",
     "eslint-config-prettier": "^10.0.2",
     "eslint-plugin-prettier": "^5.2.3",
@@ -37,7 +38,6 @@
     "prettier": "^3.5.2"
   },
   "dependencies": {
-    "axios": "^1.8.1",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
