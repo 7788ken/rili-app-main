@@ -355,4 +355,43 @@ MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/<database>
 3. **扩展功能**：根据需求添加更多日历特性（标签、分类等）
 4. **文档完善**：提供更详细的API文档和示例
 
+## 问题修复记录
+
+### 2025-03-04: 修复 "Too many keys specified; max 64 keys allowed" 错误
+
+#### 问题描述
+在数据库同步过程中遇到错误：`Too many keys specified; max 64 keys allowed`。这是因为MySQL数据库对每个表的索引数量有限制，最多只允许64个键。
+
+#### 问题原因
+1. 在使用Sequelize的`sync({ alter: true })`选项时，每次同步都会创建新的索引而不是替换旧的索引
+2. 经过多次部署和同步，`devices`表和`calendars`表的索引数量达到了64个上限
+3. 特别是`device_id`和`share_code`字段上有大量重复的索引
+
+#### 解决方案
+1. 创建了`fix_indexes.js`脚本清理重复的索引：
+   - 对于`devices`表，保留PRIMARY和第一个device_id索引，删除其他重复索引
+   - 对于`calendars`表，保留PRIMARY和第一个share_code索引，删除其他重复索引
+
+2. 修改了`src/models/index.js`中的同步选项：
+   - 将`{ alter: true }`修改为`{ force: false, alter: false }`
+   - 这样只会检查表是否存在，而不会修改表结构，避免创建重复索引
+
+3. 修改了`src/app.js`中的端口配置：
+   - 将默认端口从3002改为3003，避免端口冲突
+
+#### 预防措施
+1. 避免频繁使用`alter: true`选项，特别是在生产环境
+2. 如需修改表结构，使用手动SQL或临时启用alter选项
+3. 定期检查数据库索引情况，避免索引过多
+
+## 启动服务
+```bash
+# 启动服务
+npm start
+
+# 如果端口被占用，可以使用以下命令查找并终止占用进程
+lsof -i :3003 | grep LISTEN
+kill -9 <进程ID>
+```
+
 

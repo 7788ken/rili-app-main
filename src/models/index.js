@@ -22,8 +22,11 @@ Device.hasMany(Schedule, { foreignKey: 'deviceId', sourceKey: 'deviceId', as: 's
 // 同步所有模型到数据库
 const syncModels = async () => {
   try {
-    await sequelize.sync({ alter: true }); // 使用alter选项更新表结构而不是重新创建
-    console.log('数据库模型已同步');
+    // 修改同步选项，防止创建重复索引
+    // 使用 force: false 和 alter: false 选项，避免自动修改表结构
+    // 如需修改表结构，请使用手动SQL或临时启用alter选项
+    await sequelize.sync({ force: false, alter: false });
+    console.log('数据库模型已同步（仅检查表是否存在，不修改结构）');
   } catch (error) {
     console.error('数据库模型同步失败:', error);
   }

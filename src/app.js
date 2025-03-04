@@ -56,6 +56,11 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // 请求日志中间件
 app.use((req, res, next) => {
+  // 跳过健康检查端点的日志
+  if (req.path === '/health') {
+    return next();
+  }
+
   console.log('\n-------------- 收到客户端请求 --------------');
   console.log(`${new Date().toISOString()}`);
   console.log(`${req.method} ${req.originalUrl}`);
@@ -86,7 +91,10 @@ app.use((req, res, next) => {
 
 // 日志中间件
 if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
+  // 跳过健康检查端点的开发环境日志
+  app.use(morgan('dev', {
+    skip: (req) => req.path === '/health'
+  }));
 }
 
 // 对API路由应用速率限制
@@ -106,6 +114,16 @@ app.get('/', (req, res) => {
     version: '2.0.0',
     status: 'online',
     timestamp: new Date().toISOString()
+  });
+});
+
+// 健康检查端点
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    // timestamp: new Date().toISOString(),
+    // uptime: process.uptime(),
+    // memory: process.memoryUsage()
   });
 });
 

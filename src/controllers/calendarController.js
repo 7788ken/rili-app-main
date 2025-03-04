@@ -433,7 +433,8 @@ const getSchedulesByShareCode = asyncHandler(async (req, res) => {
       startTime: new Date(schedule.startTime).getTime(),
       endTime: new Date(schedule.endTime).getTime(),
       isAllDay: schedule.isAllDay ? 1 : 0,
-      location: schedule.location || ''
+      location: schedule.location || '',
+      isCompleted: Boolean(schedule.isCompleted)
     }))
   });
 });
@@ -532,6 +533,7 @@ const updateScheduleByShareCode = asyncHandler(async (req, res) => {
   if (scheduleData.endTime) schedule.endTime = new Date(scheduleData.endTime);
   if (scheduleData.isAllDay !== undefined) schedule.isAllDay = scheduleData.isAllDay ? true : false;
   if (scheduleData.color) schedule.color = scheduleData.color;
+  if (scheduleData.isCompleted !== undefined) schedule.isCompleted = scheduleData.isCompleted ? true : false;
 
   await schedule.save();
 
@@ -539,7 +541,7 @@ const updateScheduleByShareCode = asyncHandler(async (req, res) => {
   calendar.lastSync = new Date();
   await calendar.save();
 
-  res.json({ success: true });
+  res.json({ success: true, message: '更新日程完成' });
 });
 
 /**
