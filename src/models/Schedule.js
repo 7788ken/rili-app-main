@@ -84,6 +84,14 @@ const Schedule = sequelize.define('Schedule', {
     defaultValue: false,
     field: 'is_deleted',
     comment: '软删除标记'
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    field: 'created_at'
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    field: 'updated_at'
   }
 }, {
   tableName: 'schedules',

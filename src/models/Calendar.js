@@ -57,6 +57,14 @@ const Calendar = sequelize.define('Calendar', {
     type: DataTypes.STRING,
     field: 'edit_password',
     comment: '编辑密码，用于保护分享的日历'
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    field: 'created_at'
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    field: 'updated_at'
   }
 }, {
   tableName: 'calendars',
